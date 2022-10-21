@@ -1,0 +1,21 @@
+fastapi~=0.85
+#web server used by fastApi
+fastapi-utils~=0.2
+# utils
+uvicorn~=0.18
+# redis syncronous libary for redis
+redis[hiredis]~=4.3
+# pydantic as dataclasses need other libs to serialize
+pydantic~=1.10
+# to make in the proxi super simple ( not really as it should be )
+httpx~=0.23
+# to iteract with mlflow 
+mlflow-skinny~=1.29
+# numpy
+numpy~=1.23
+# onnx
+onnx~=1.12
+# onnx-runtime
+onnxruntime~=1.12
+# pandas
+pandas~=1.5

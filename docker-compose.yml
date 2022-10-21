@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  mlflow:
+    image: 'atcommons/mlflow-server'
+    build: mlfow-server/
+    ports:
+      - "5000:5000"
+    volumes:
+      - "/Users/felipemateos/mlflow:/mlflow/data"
+    environment:
+      BACKEND_URI: sqlite:////mlflow/data/mlflow.db
+      ARTIFACT_ROOT: /mlflow/data/artifacts
+  redis:
+    image: 'redis'
+    ports:
+      - "6379:6379"
+  api:
+    image: 'recommender-api:0.0.1'
+    build: service/
+    ports:
+      - "8000:8000"
+    volumes:
+      - "/Users/felipemateos/mlflow:/mlflow/data"
+    depends_on:
+      - mlflow
+      - redis
+
+
