@@ -15,15 +15,15 @@ services:
     image: 'redis'
     ports:
       - "6379:6379"
-  api:
-    image: 'recommender-api:0.0.1'
-    build: service/
-    ports:
-      - "8000:8000"
-    volumes:
-      - "/Users/felipemateos/mlflow:/mlflow/data"
-    depends_on:
-      - mlflow
-      - redis
+  # api:
+  #   image: 'recommender-api:0.0.1'
+  #   build: service/
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - "/Users/felipemateos/mlflow:/mlflow/data"
+  #   depends_on:
+  #     - mlflow
+  #     - redis
 
 
