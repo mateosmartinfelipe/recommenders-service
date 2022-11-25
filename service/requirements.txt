@@ -19,3 +19,9 @@ onnx~=1.12
 onnxruntime~=1.12
 # pandas
 pandas~=1.5
+# kafka-python
+kafka-python~=2.0
+# enviromet variables
+python-dotenv~=0.21
+#boto
+boto3~=1.24
