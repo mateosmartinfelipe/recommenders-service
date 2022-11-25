@@ -1,22 +1,19 @@
+import os
 from typing import Optional
 
 from pydantic import BaseSettings
 
 
 class MlflowConfig(BaseSettings):
-    local_host: str = "127.0.0.1"
-    # web server
-    container_name_web = "mlflow"
     port_web: int = 5000
-    local_server_web: str = f"http://{local_host}:{port_web}"
-    network_server_web: str = f"http://{container_name_web}:{port_web}"
-    # artifacts server
-    container_name_artifacts = "minio"
-    artifacts_port: int = 9000
-    local_server_artifacts: str = f"http://{local_host}:{artifacts_port}"
-    network_server_artifacts: str = (
-        f"http://{container_name_artifacts}:{port_web}"
-    )
+    local_host: str = "127.0.0.1"
+
+    def get_web_server(self, environment: str):
+        # web server
+        container_name_web = "mlflow"
+        local_server: str = f"http://{self.local_host}:{self.port_web}"
+        network_server: str = f"http://{container_name_web}:{self.port_web}"
+        return local_server if environment == "local" else network_server
 
 
 class RedisConfig(BaseSettings):
@@ -68,3 +65,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+ENVIRONMENT = os.getenv("environment")

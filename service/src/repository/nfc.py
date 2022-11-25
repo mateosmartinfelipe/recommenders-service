@@ -15,6 +15,7 @@ from mlflow import MlflowClient
 from onnx.onnx_ml_pb2 import ModelProto
 
 from ..config import (
+    ENVIRONMENT,
     KafkaConfig,
     MlflowConfig,
     MLFlowModelConfig,
@@ -22,8 +23,6 @@ from ..config import (
     settings,
 )
 from ..models import KafkaMessage, Recommendation
-
-ENVIRONMENT = os.getenv("environment")
 
 
 @dataclass
@@ -58,7 +57,7 @@ def download_model(
     model_config: MLFlowModelConfig,
     current_model_version: Optional[str],
 ) -> Optional[InferenceModel]:
-    client = get_mlflow_server(mlflow_config.local_server_web)
+    client = get_mlflow_server(mlflow_config.get_web_server(ENVIRONMENT))
     run_id, version = get_model_info(model_config, client)
     if current_model_version is None or current_model_version != version:
         experiment = mlflow.get_experiment_by_name(
