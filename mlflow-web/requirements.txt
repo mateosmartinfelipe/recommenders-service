@@ -1,0 +1,4 @@
+cryptography~=38.0
+mlflow~=1.29
+boto3~=1.24
+pymysql~=1.0

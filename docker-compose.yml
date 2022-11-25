@@ -1,29 +1,123 @@
-version: '3'
+version: '3.7'
 
 services:
-  mlflow:
-    image: 'atcommons/mlflow-server'
-    build: mlfow-server/
-    ports:
-      - "5000:5000"
-    volumes:
-      - "/Users/felipemateos/mlflow:/mlflow/data"
-    environment:
-      BACKEND_URI: sqlite:////mlflow/data/mlflow.db
-      ARTIFACT_ROOT: /mlflow/data/artifacts
+  minio:
+      restart: always
+      image: minio/minio
+      container_name: mlflow_s3
+      ports:
+          - "9000:9000"
+          - "9001:9001"
+      command: server /data --console-address ':9001' --address ':9000'
+      env_file:
+           - .env
+      environment:
+          - MINIO_ROOT_USER=${AWS_ACCESS_KEY_ID}
+          - MINIO_ROOT_PASSWORD=${AWS_SECRET_ACCESS_KEY}
+      volumes:
+          - mlflow_artifacts:/data
+      networks:
+          - back-end 
+  db:
+      restart: always
+      image: mysql/mysql-server
+      container_name: mlflow_db
+      ports:
+          - "3306:3306"
+      env_file:
+           - .env
+      environment:
+          - MYSQL_DATABASE=${MYSQL_DATABASE}
+          - MYSQL_USER=${MYSQL_USER}
+          - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+          - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      volumes:
+          - mlflow_db:/var/lib/mysql
+      networks:
+          - back-end 
+  web:
+      restart: always
+      build: ./mlflow-web
+      image: mlflow_web
+      container_name: mlflow_web
+      depends_on:
+          - db
+      ports:
+          - "5000:5000"
+      env_file:
+           - .env
+      environment:
+          - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+          - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+          - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      networks:
+       - back-end 
   redis:
     image: 'redis'
+    container_name: redis
     ports:
       - "6379:6379"
-  # api:
-  #   image: 'recommender-api:0.0.1'
-  #   build: service/
-  #   ports:
-  #     - "8000:8000"
-  #   volumes:
-  #     - "/Users/felipemateos/mlflow:/mlflow/data"
-  #   depends_on:
-  #     - mlflow
-  #     - redis
+    networks:
+      - back-end   
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+    networks:
+      - back-end   
+  kafka:
+    image: confluentinc/cp-kafka:5.3.1
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - back-end   
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    container_name: kafdrop
+    ports:
+     - "9002:9000"
+    environment:
+      KAFKA_BROKERCONNECT: "kafka:9092"
+      JVM_OPTS: "-Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
+    networks:
+      - back-end   
+    depends_on:
+      - kafka
+#   api:
+#     image: 'recommender-api:0.0.1'
+#     container_name: recomenders-api
+#     build: ./service
+#     ports:
+#       - "8000:8000"
+#     depends_on:
+#       - web
+#       - redis
+#       # - kafka
+#     networks:
+#        - back-end   
+# this is very useful is a more compelx application you want to
+# have diferent networks for different parts of the service
+
+networks:
+  back-end:
+
+volumes:
+  mlflow_artifacts: 
+  mlflow_db: 
+
+
 
 

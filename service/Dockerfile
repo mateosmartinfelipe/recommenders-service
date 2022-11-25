@@ -9,7 +9,7 @@ RUN pip install -U --no-cache-dir pip && pip install \
 
 WORKDIR /app/
 
-EXPOSE 8000
+EXPOSE 8000 5000
 
 COPY src recomender-service
 COPY scripts/start.sh start.sh

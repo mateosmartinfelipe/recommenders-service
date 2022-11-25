@@ -5,36 +5,59 @@ from pydantic import BaseSettings
 
 
 class MlflowConfig(BaseSettings):
-    uri: str = "http://127.0.0.1:5000"
-    items_folder: str = "/Users/felipemateos/mlflow"
+    port_web: int = 5000
+    local_host: str = "127.0.0.1"
+
+    def get_web_server(self, environment: str):
+        # web server
+        container_name_web = "mlflow"
+        local_server: str = f"http://{self.local_host}:{self.port_web}"
+        network_server: str = f"http://{container_name_web}:{self.port_web}"
+        return local_server if environment == "local" else network_server
 
 
 class RedisConfig(BaseSettings):
-    host: str = "localhost"
-    port: int = 6379
     db: int = 0
-    server: str = f"{host}:{port}"
+    port: int = 6379
+
+    def get_server(self, environment: str):
+        local_host: str = "127.0.0.1"
+        container_name: str = "redis"
+        local_server: str = f"{local_host}"
+        network_server: str = f"{container_name}"
+        return local_server if environment == "local" else network_server
 
 
-class Kafka(BaseSettings):
-    kafka_host: str = "http://127.0.0.1/"
+class KafkaConfig(BaseSettings):
     kafka_ml_topic_name: str = "ml.predictions"
+    kafka_consumer_group: str = "group-id"
+    limit: int = 10
     max_kafka_message_size: int = 1024 * 1024 * 1
+
+    def get_server(self, environment: str):
+        local_host: str = "localhost"
+        port: int = 29092
+        container_name: str = "kafka"
+        local_server: str = f"{local_host}:{port}"
+        network_server: str = f"{container_name}:{port}"
+        return local_server if environment == "local" else network_server
 
 
 class MLFlowModelConfig(BaseSettings):
-    name: str
+    experiment_name: str
+    model_name: str
     stage: str
-    artifacts_dir: Optional[str] = "/Users/felipemateos/mlflow"
 
 
 class Settings(BaseSettings):
     mlflow: MlflowConfig = MlflowConfig()
     redis: RedisConfig = RedisConfig()
     model: MLFlowModelConfig = MLFlowModelConfig(
-        name="nfc_recommender.onnx", stage="Production"
+        experiment_name="nfc_recommender",
+        model_name="nfc_recommender.onnx",
+        stage="Production",
     )
-    kafka: Kafka = None
+    kafka: KafkaConfig = KafkaConfig()
     http_timeout: float = 30
     http_pool_size: int = 100
     http_retires: int = 1
@@ -42,3 +65,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+ENVIRONMENT = os.getenv("environment")
