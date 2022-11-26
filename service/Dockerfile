@@ -17,7 +17,7 @@ COPY scripts/start.sh start.sh
 # Directory to be mapped to the location on the host 
 # where the mlflow artifacts are stored.
 # All unnecessary if using S3 u other provider
-RUN   mkdir -p /mlflow/data
+#RUN   mkdir -p /mlflow/data
 
 ENTRYPOINT ["./start.sh"]
 

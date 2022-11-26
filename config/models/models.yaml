@@ -1,0 +1,4 @@
+experiment_name: "nfc_recommender"
+model_name : "nfc_recommender.onnx"
+stage: "Production"
+items_file: items.pkl

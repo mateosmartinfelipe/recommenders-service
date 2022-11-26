@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.9'
 
 services:
   minio:
@@ -47,7 +47,7 @@ services:
       env_file:
            - .env
       environment:
-          - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+          - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
           - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
           - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       networks:
@@ -96,18 +96,21 @@ services:
       - back-end   
     depends_on:
       - kafka
-#   api:
-#     image: 'recommender-api:0.0.1'
-#     container_name: recomenders-api
-#     build: ./service
-#     ports:
-#       - "8000:8000"
-#     depends_on:
-#       - web
-#       - redis
-#       # - kafka
-#     networks:
-#        - back-end   
+  # api:
+  #   image: 'recommender-api:0.0.1'
+  #   container_name: recomenders-api
+  #   build: ./service
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - "8000:8000"
+  #     #- "5000:5000"
+  #   depends_on:
+  #     - web
+  #     - redis
+  #     - kafka
+  #   networks:
+  #      - back-end   
 # this is very useful is a more compelx application you want to
 # have diferent networks for different parts of the service
 

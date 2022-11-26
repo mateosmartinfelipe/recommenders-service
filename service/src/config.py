@@ -1,45 +1,59 @@
-import os
-from typing import Optional
+import logging
+from dataclasses import dataclass
+from pathlib import Path
 
+import hydra
+from hydra import compose
 from pydantic import BaseSettings
+
+# setup loggers
+logging_file = (Path("__file__").parent / "logging.conf").resolve().as_posix()
+logging.config.fileConfig(logging_file, disable_existing_loggers=False)
+
+
+config_folder = (Path("__file__").parent / "config").resolve().as_posix()
+hydra.initialize_config_dir(config_dir=config_folder)
+api_config = compose(config_name="application.yaml")
 
 
 class MlflowConfig(BaseSettings):
-    port_web: int = 5000
-    local_host: str = "127.0.0.1"
+    port_web: int
+    local_host: str
+    container_name_web: str
 
     def get_web_server(self, environment: str):
         # web server
-        container_name_web = "mlflow"
         local_server: str = f"http://{self.local_host}:{self.port_web}"
-        network_server: str = f"http://{container_name_web}:{self.port_web}"
+        network_server: str = (
+            f"http://{self.container_name_web}:{self.port_web}"
+        )
         return local_server if environment == "local" else network_server
 
 
 class RedisConfig(BaseSettings):
-    db: int = 0
-    port: int = 6379
+    db: int
+    port: int
+    local_host: str
+    container_name: str
 
     def get_server(self, environment: str):
-        local_host: str = "127.0.0.1"
-        container_name: str = "redis"
-        local_server: str = f"{local_host}"
-        network_server: str = f"{container_name}"
+        local_server: str = f"{self.local_host}"
+        network_server: str = f"{self.container_name}"
         return local_server if environment == "local" else network_server
 
 
 class KafkaConfig(BaseSettings):
-    kafka_ml_topic_name: str = "ml.predictions"
-    kafka_consumer_group: str = "group-id"
-    limit: int = 10
-    max_kafka_message_size: int = 1024 * 1024 * 1
+    kafka_ml_topic_name: str
+    kafka_consumer_group: str
+    limit: int
+    max_kafka_message_size: int
+    port: int
+    local_host: str
+    container_name: str
 
     def get_server(self, environment: str):
-        local_host: str = "localhost"
-        port: int = 29092
-        container_name: str = "kafka"
-        local_server: str = f"{local_host}:{port}"
-        network_server: str = f"{container_name}:{port}"
+        local_server: str = f"{self.local_host}:{self.port}"
+        network_server: str = f"{self.container_name}:{self.port}"
         return local_server if environment == "local" else network_server
 
 
@@ -47,22 +61,30 @@ class MLFlowModelConfig(BaseSettings):
     experiment_name: str
     model_name: str
     stage: str
+    items_file: str
+
+
+class ServicesConfig(BaseSettings):
+    mlflow: MlflowConfig
+    redis: RedisConfig
+    kafka: KafkaConfig
 
 
 class Settings(BaseSettings):
-    mlflow: MlflowConfig = MlflowConfig()
-    redis: RedisConfig = RedisConfig()
-    model: MLFlowModelConfig = MLFlowModelConfig(
-        experiment_name="nfc_recommender",
-        model_name="nfc_recommender.onnx",
-        stage="Production",
-    )
-    kafka: KafkaConfig = KafkaConfig()
-    http_timeout: float = 30
-    http_pool_size: int = 100
-    http_retires: int = 1
-    max_num_recommendation: int = 100
+    http_timeout: float
+    http_pool_size: int
+    http_retires: int
+    environment: str
+    max_num_recommendation: int
+    models: MLFlowModelConfig
+    services: ServicesConfig
 
 
-settings = Settings()
-ENVIRONMENT = os.getenv("environment")
+settings = Settings(**api_config)
+# logging
+
+# get root logger
+logger = logging.getLogger(
+    __name__
+)  # the __name__ resolve to "main" since we are at the root of the project.
+# This will get the root logger since no logger in the configuration has this name.
