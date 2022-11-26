@@ -1,6 +1,8 @@
-import logging
+import random
+import string
+import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi_utils.tasks import repeat_every
 from hydra.core.config_store import ConfigStore
 
@@ -17,6 +19,23 @@ from .routers import TAGS_METADATA, nfc_router
 
 app = FastAPI(title=PROJECT_NAME, version=VERSION, openapi_tags=TAGS_METADATA)
 app.include_router(nfc_router.nfc)
+
+
+@app.middleware("http")
+def log_requests(request: Request, call_next):
+    idem = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    logger.info(f"rid={idem} start request path={request.url.path}")
+    start_time = time.time()
+
+    response = call_next(request)
+
+    process_time = (time.time() - start_time) * 1000
+    formatted_process_time = "{0:.2f}".format(process_time)
+    logger.info(
+        f"rid={idem} completed_in={formatted_process_time}ms status_code={response}"
+    )
+
+    return response
 
 
 @app.on_event("startup")
