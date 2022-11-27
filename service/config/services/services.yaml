@@ -3,7 +3,7 @@ kafka:
   kafka_consumer_group: "group-id"
   limit: 10
   max_kafka_message_size: 1048576
-  port: 29092
+  port: 9092 #29092
   local_host: "localhost"
   container_name: "kafka"
 

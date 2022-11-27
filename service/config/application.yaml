@@ -8,4 +8,4 @@ http_timeout: 30
 http_pool_size: 100
 http_retires: 1
 max_num_recommendation: 100
-environment: ${oc.env:ENVIRONMENT,"local"}
+environment: ${oc.env:ENVIRONMENT,"network"}

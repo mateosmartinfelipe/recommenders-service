@@ -41,6 +41,7 @@ services:
       image: mlflow_web
       container_name: mlflow_web
       depends_on:
+          - minio
           - db
       ports:
           - "5000:5000"
@@ -53,6 +54,7 @@ services:
       networks:
        - back-end 
   redis:
+    restart: always
     image: 'redis'
     container_name: redis
     ports:
@@ -69,6 +71,7 @@ services:
     networks:
       - back-end   
   kafka:
+    restart: always
     image: confluentinc/cp-kafka:5.3.1
     container_name: kafka
     depends_on:
@@ -85,6 +88,7 @@ services:
     networks:
       - back-end   
   kafdrop:
+    restart: always
     image: obsidiandynamics/kafdrop
     container_name: kafdrop
     ports:
@@ -96,21 +100,21 @@ services:
       - back-end   
     depends_on:
       - kafka
-  # api:
-  #   image: 'recommender-api:0.0.1'
-  #   container_name: recomenders-api
-  #   build: ./service
-  #   env_file:
-  #     - .env
-  #   ports:
-  #     - "8000:8000"
-  #     #- "5000:5000"
-  #   depends_on:
-  #     - web
-  #     - redis
-  #     - kafka
-  #   networks:
-  #      - back-end   
+  api:
+    restart: always
+    image: 'recommender-api:0.0.1'
+    container_name: recomenders-api
+    build: ./service
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - web
+      - redis
+      - kafka
+    networks:
+       - back-end   
 # this is very useful is a more compelx application you want to
 # have diferent networks for different parts of the service
 

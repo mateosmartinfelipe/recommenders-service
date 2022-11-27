@@ -7,11 +7,11 @@ from hydra import compose
 from pydantic import BaseSettings
 
 # setup loggers
-logging_file = (Path("__file__").parent / "logging.conf").resolve().as_posix()
+logging_file = (Path(__file__).parent / "logging.ini").resolve().as_posix()
 logging.config.fileConfig(logging_file, disable_existing_loggers=False)
 
 
-config_folder = (Path("__file__").parent / "config").resolve().as_posix()
+config_folder = (Path(__file__).parent.parent / "config").resolve().as_posix()
 hydra.initialize_config_dir(config_dir=config_folder)
 api_config = compose(config_name="application.yaml")
 

@@ -20,6 +20,8 @@ from .routers import TAGS_METADATA, nfc_router
 app = FastAPI(title=PROJECT_NAME, version=VERSION, openapi_tags=TAGS_METADATA)
 app.include_router(nfc_router.nfc)
 
+logger.info(f"ENVIRONMENT --------- {settings.environment}")
+
 
 @app.middleware("http")
 def log_requests(request: Request, call_next):
