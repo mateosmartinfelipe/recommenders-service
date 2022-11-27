@@ -1,9 +1,7 @@
 import json
-import os
 import pickle
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import mlflow
@@ -12,14 +10,12 @@ import redis
 from fastapi import HTTPException, status
 from kafka import KafkaProducer
 from mlflow import MlflowClient
-from onnx.onnx_ml_pb2 import ModelProto
 
 from ..config import (
-    ENVIRONMENT,
     KafkaConfig,
-    MlflowConfig,
     MLFlowModelConfig,
     RedisConfig,
+    Settings,
     settings,
 )
 from ..models import KafkaMessage, Recommendation
@@ -53,26 +49,25 @@ def get_model_info(
 
 
 def download_model(
-    mlflow_config: MlflowConfig,
-    model_config: MLFlowModelConfig,
+    settings: Settings,
     current_model_version: Optional[str],
 ) -> Optional[InferenceModel]:
-    client = get_mlflow_server(mlflow_config.get_web_server(ENVIRONMENT))
-    run_id, version = get_model_info(model_config, client)
+    client = get_mlflow_server(
+        settings.services.mlflow.get_web_server(settings.environment)
+    )
+    run_id, version = get_model_info(settings.models, client)
     if current_model_version is None or current_model_version != version:
         experiment = mlflow.get_experiment_by_name(
-            model_config.experiment_name
+            settings.models.experiment_name
         )
-        model_uri = f"{experiment.artifact_location}/{run_id}/artifacts/{model_config.model_name}"
+        model_uri = f"{experiment.artifact_location}/{run_id}/artifacts/{settings.models.model_name}"
         inference_engine = mlflow.onnx.load_model(model_uri=model_uri)
-        items_uri = (
-            f"{experiment.artifact_location}/{run_id}/artifacts/items.pkl"
-        )
+        items_uri = f"{experiment.artifact_location}/{run_id}/artifacts/{settings.models.items_file}"
         items_file = mlflow.artifacts.download_artifacts(
             artifact_uri=items_uri
         )
         items = pickle.load(open(items_file, "rb"))
-        items_list = items.keys()
+        items_list = list(items.keys())
 
         return InferenceModel(
             inference_engine.SerializeToString(), items, items_list, version
@@ -81,17 +76,15 @@ def download_model(
 
 
 def get_recommended_items(
-    probs: List[float], items: Dict[int, int], max_number: int
+    prob: List[float], max_number: int
 ) -> List[Tuple[int, float]]:
-    item_code_prob = zip(probs, list(range(len(probs))))
+    item_code_prob = zip(prob, list(range(len(prob))))
     item_code_prob = sorted(item_code_prob, key=lambda x: x[0], reverse=True)
     item_prob = [(item, prob[0]) for prob, item in item_code_prob[:max_number]]
     return item_prob
 
 
 def infer(user_id: str, infer_engine: InferenceModel):
-    # user = {"user": [user_id] * len(sample[:2])}
-    # items = {"item": sample[:2]}
     user = [user_id] * len(infer_engine.items_list)
     item = list(infer_engine.items_list)
     session = rt.InferenceSession(infer_engine.engine)
@@ -162,5 +155,7 @@ def send_message(
     )
 
 
-get_redis_server_fn = get_redis(settings.redis, ENVIRONMENT)
-get_kafka_producer_fn = get_kafka_producer(settings.kafka, ENVIRONMENT)
+get_redis_server_fn = get_redis(settings.services.redis, settings.environment)
+get_kafka_producer_fn = get_kafka_producer(
+    settings.services.kafka, settings.environment
+)

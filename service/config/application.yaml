@@ -1,0 +1,11 @@
+# Default config files
+defaults:
+  - services: services.yaml
+  - models: models.yaml
+  - _self_
+
+http_timeout: 30
+http_pool_size: 100
+http_retires: 1
+max_num_recommendation: 100
+environment: ${oc.env:ENVIRONMENT,"network"}

@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Path, status
 
-from ..config import settings
+from ..config import logger, settings
 from ..models import Recommendation
 from ..repository.nfc import (
     InferenceModel,
@@ -37,38 +37,48 @@ def get_recommendations(
     redis_server=Depends(get_redis_server_fn),
     kafka_producer=Depends(get_kafka_producer_fn),
 ) -> Recommendation:
-    redis_idx = f"model:{settings.model.model_name}_user:{user}_version:{infer_engine.version}_num:{max_number_iteration}"
+    logger.info(f"user::{user}")
+    redis_idx = f"model:{settings.models.model_name}|user:{user}|version:{infer_engine.version}|max_num:{max_number_iteration}"
     if infer_engine:
         is_cached = get_from_cache(idx=redis_idx, redis=redis_server)
         if is_cached:
+            logger.info(f"Reading form cache")
+            logger.info(f"redis_id-> {redis_idx} ")
             recommendations = Recommendation(**is_cached)
         # first check if in cache
         # if not , then infer and cache and return
         else:
-            probs = infer(user_id=user, infer_engine=infer_engine)
+            logger.info(f"Running inference")
+            prob = infer(user_id=user, infer_engine=infer_engine)
             # store to is_cached
 
             items_prob = get_recommended_items(
-                probs=probs,
-                items=infer_engine.items_list,
+                prob=prob,
                 max_number=max_number_iteration,
             )
+            logger.debug(f"Output-> {items_prob}")
+
             recommendations = Recommendation(
-                model_name=settings.model.model_name,
+                model_name=settings.models.model_name,
                 model_version=infer_engine.version,
                 user_id=user,
                 items_prob=items_prob,
             )
+            logger.info(f"redis_id-> {redis_idx} ")
             set_to_cache(
                 idx=redis_idx,
                 redis=redis_server,
                 recommendations=recommendations,
             )
+
+        logger.info(
+            f"kafka consumer-> {settings.services.kafka.kafka_ml_topic_name} "
+        )
         send_message(
             producer=kafka_producer,
-            settings=settings.kafka,
+            settings=settings.services.kafka,
             data=recommendations,
         )
         return recommendations
     else:
-        raise ValueError("Not inference engine")
+        raise ValueError("Not inference engine") from None

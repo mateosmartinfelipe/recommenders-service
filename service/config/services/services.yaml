@@ -1,0 +1,19 @@
+kafka:
+  kafka_ml_topic_name: "ml.predictions"
+  kafka_consumer_group: "group-id"
+  limit: 10
+  max_kafka_message_size: 1048576
+  port: 9092 #29092
+  local_host: "localhost"
+  container_name: "kafka"
+
+redis: 
+  db:  0
+  port: 6379
+  local_host: "127.0.0.1"
+  container_name: "redis"
+
+mlflow:
+  port_web: 5000
+  local_host: "127.0.0.1"
+  container_name_web: "mlflow_web"
