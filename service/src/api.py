@@ -4,23 +4,24 @@ import time
 
 from fastapi import FastAPI, Request
 from fastapi_utils.tasks import repeat_every
-from hydra.core.config_store import ConfigStore
 
 from . import PROJECT_NAME
 from . import __version__ as VERSION
 
 # config
 from .config import logger, settings
+from .models import Recommendation
 from .repository import nfc
 from .routers import TAGS_METADATA, nfc_router
-
-# overwrite config arguments
-# python src/main.py model_params.run_hp=False
 
 app = FastAPI(title=PROJECT_NAME, version=VERSION, openapi_tags=TAGS_METADATA)
 app.include_router(nfc_router.nfc)
 
-logger.info(f"ENVIRONMENT --------- {settings.environment}")
+
+nfc_router.current_model = nfc.download_model(
+    settings=settings,
+    current_model_version=None,
+)
 
 
 @app.middleware("http")
