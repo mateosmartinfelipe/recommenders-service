@@ -1,7 +1,10 @@
+import asyncio
 import random
 import string
 import time
 
+import aioredis
+from aiokafka import AIOKafkaProducer
 from fastapi import FastAPI, Request
 from fastapi_utils.tasks import repeat_every
 
@@ -10,27 +13,20 @@ from . import __version__ as VERSION
 
 # config
 from .config import logger, settings
-from .models import Recommendation
-from .repository import nfc
+from .repository import nfc, services
 from .routers import TAGS_METADATA, nfc_router
 
 app = FastAPI(title=PROJECT_NAME, version=VERSION, openapi_tags=TAGS_METADATA)
 app.include_router(nfc_router.nfc)
 
 
-nfc_router.current_model = nfc.download_model(
-    settings=settings,
-    current_model_version=None,
-)
-
-
 @app.middleware("http")
-def log_requests(request: Request, call_next):
+async def log_requests(request: Request, call_next):
     idem = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
     logger.info(f"rid={idem} start request path={request.url.path}")
     start_time = time.time()
 
-    response = call_next(request)
+    response = await call_next(request)
 
     process_time = (time.time() - start_time) * 1000
     formatted_process_time = "{0:.2f}".format(process_time)
@@ -61,6 +57,25 @@ def startup_event():
                 f"New model available: old {nfc_router.current_model.version} , {new_model.version}"
             )
             nfc_router.current_model = new_model
+
+
+@app.on_event("startup")
+async def init_clients():
+    logger.info("Initializing Redis client")
+    logger.info(f"{settings.services.redis}")
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    services.redis_client = aioredis.from_url(
+        url=f"redis://{settings.services.redis.get_server(settings.environment)}:{settings.services.redis.port}/{settings.services.redis.db}"
+    )
+    logger.info("Initializing kafka client producer")
+    logger.info(f"{settings.services.kafka}")
+    services.kafka_producer = AIOKafkaProducer(
+        bootstrap_servers=settings.services.kafka.get_server(
+            settings.environment
+        )
+    )
+    await services.kafka_producer.start()
 
 
 @app.get("/health")

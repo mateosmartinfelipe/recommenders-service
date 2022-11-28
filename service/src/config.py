@@ -47,13 +47,14 @@ class KafkaConfig(BaseSettings):
     kafka_consumer_group: str
     limit: int
     max_kafka_message_size: int
-    port: int
+    local_port: int
+    container_port: int
     local_host: str
     container_name: str
 
     def get_server(self, environment: str):
-        local_server: str = f"{self.local_host}:{self.port}"
-        network_server: str = f"{self.container_name}:{self.port}"
+        local_server: str = f"{self.local_host}:{self.local_port}"
+        network_server: str = f"{self.container_name}:{self.container_port}"
         return local_server if environment == "local" else network_server
 
 
