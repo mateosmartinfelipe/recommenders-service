@@ -87,6 +87,12 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     networks:
       - back-end   
+    healthcheck:
+      test: nc -z kafka 9092 || exit -1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
   kafdrop:
     restart: always
     image: obsidiandynamics/kafdrop
@@ -100,21 +106,20 @@ services:
       - back-end   
     depends_on:
       - kafka
-  # api:
-  #   restart: always
-  #   image: 'recommender-api:0.0.1'
-  #   container_name: recomenders-api
-  #   build: ./service
-  #   env_file:
-  #     - .env
-  #   ports:
-  #     - "8000:8000"
-  #   depends_on:
-  #     - web
-  #     - redis
-  #     - kafka
-  #   networks:
-  #      - back-end   
+  api:
+    restart: always
+    image: 'recommender-api:0.0.1'
+    container_name: recomenders-api
+    build: ./service
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+       - back-end   
 # this is very useful is a more compelx application you want to
 # have diferent networks for different parts of the service
 
