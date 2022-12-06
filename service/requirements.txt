@@ -4,7 +4,9 @@ fastapi-utils~=0.2
 # utils
 uvicorn~=0.18
 # redis syncronous libary for redis
-redis[hiredis]~=4.3
+# redis[hiredis]~=4.3
+# redis async library for redis
+aioredis~=2.0
 # pydantic as dataclasses need other libs to serialize
 pydantic~=1.10
 # to make in the proxi super simple ( not really as it should be )
@@ -19,11 +21,15 @@ onnx~=1.12
 onnxruntime~=1.12
 # pandas
 pandas~=1.5
-# kafka-python
-kafka-python~=2.0
+# kafka-python sysncronous
+#kafka-python~=2.0
+# kafka async
+aiokafka~=0.8
 # enviromet variables
 python-dotenv~=0.21
 #boto
 boto3~=1.24
 #config manager
 hydra-core~=1.2
+
+

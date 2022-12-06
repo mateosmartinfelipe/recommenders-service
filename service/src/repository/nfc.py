@@ -6,18 +6,12 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import mlflow
 import onnxruntime as rt
-import redis
+from aiokafka import AIOKafkaProducer
+from aiokafka.errors import RequestTimedOutError
 from fastapi import HTTPException, status
-from kafka import KafkaProducer
 from mlflow import MlflowClient
 
-from ..config import (
-    KafkaConfig,
-    MLFlowModelConfig,
-    RedisConfig,
-    Settings,
-    settings,
-)
+from ..config import KafkaConfig, MLFlowModelConfig, Settings, logger, settings
 from ..models import KafkaMessage, Recommendation
 
 
@@ -75,7 +69,7 @@ def download_model(
     return None
 
 
-def get_recommended_items(
+async def get_recommended_items(
     prob: List[float], max_number: int
 ) -> List[Tuple[int, float]]:
     item_code_prob = zip(prob, list(range(len(prob))))
@@ -84,7 +78,7 @@ def get_recommended_items(
     return item_prob
 
 
-def infer(user_id: str, infer_engine: InferenceModel):
+async def infer(user_id: str, infer_engine: InferenceModel):
     user = [user_id] * len(infer_engine.items_list)
     item = list(infer_engine.items_list)
     session = rt.InferenceSession(infer_engine.engine)
@@ -95,67 +89,47 @@ def infer(user_id: str, infer_engine: InferenceModel):
     return prob[0]
 
 
-def get_redis(settings: RedisConfig, environment: str):
-    def get() -> Any:
-        return redis.StrictRedis(
-            host=settings.get_server(environment),
-            port=settings.port,
-            db=settings.db,
-        )
-
-    return get
-
-
-def get_from_cache(
+async def get_from_cache(
     idx: str,
     redis: Callable[..., Any],
 ) -> Optional[Dict[Any, Any]]:
 
-    output_json = redis.get(idx)
+    output_json = await redis.get(idx)
     if output_json:
         data = json.loads(output_json)
         return data
     return output_json
 
 
-def set_to_cache(
+async def set_to_cache(
     idx: str,
     redis,
     recommendations: Recommendation,
 ) -> None:
-    exist = redis.get(idx)
+    exist = await redis.get(idx)
     if exist:
         return HTTPException(
             status_code=status.HTTP_302_FOUND,
             detail=f"Recommendations id {idx} already exist",
         )
     recommendations_to_json = recommendations.json()
-    redis.set(idx, recommendations_to_json, 60 * 60 * 24)
+    await redis.set(idx, recommendations_to_json, 60 * 60 * 24)
 
 
-def get_kafka_producer(settings: KafkaConfig, environment: str):
-    def get():
-        kafka_producer = KafkaProducer(
-            bootstrap_servers=settings.get_server(environment)
-        )
-        return kafka_producer
-
-    return get
-
-
-def send_message(
-    producer, settings: KafkaConfig, data: Recommendation
+async def send_message(
+    producer: AIOKafkaProducer, settings: KafkaConfig, data: Recommendation
 ) -> None:
     message = KafkaMessage(
         time=datetime.now().strftime("%d/%m/%Y %H:%M:%S"), data=data
     )
-    producer.send(
-        topic=settings.kafka_ml_topic_name,
-        value=message.json().encode("utf-8"),
-    )
-
-
-get_redis_server_fn = get_redis(settings.services.redis, settings.environment)
-get_kafka_producer_fn = get_kafka_producer(
-    settings.services.kafka, settings.environment
-)
+    try:
+        # Produce message
+        await producer.send_and_wait(
+            topic=settings.kafka_ml_topic_name,
+            value=message.json().encode("utf-8"),
+        )
+    except RequestTimedOutError as e:
+        return e
+    finally:
+        # Wait for all pending messages to be delivered or expire.
+        await producer.stop()

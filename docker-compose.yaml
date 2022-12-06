@@ -87,6 +87,12 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     networks:
       - back-end   
+    healthcheck:
+      test: nc -z kafka 9092 || exit -1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
   kafdrop:
     restart: always
     image: obsidiandynamics/kafdrop
@@ -110,9 +116,8 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - web
-      - redis
-      - kafka
+      kafka:
+        condition: service_healthy
     networks:
        - back-end   
 # this is very useful is a more compelx application you want to
