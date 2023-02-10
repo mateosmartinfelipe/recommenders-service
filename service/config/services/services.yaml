@@ -8,7 +8,7 @@ kafka:
   local_host: "localhost"
   container_name: "kafka"
 
-redis: 
+redis:
   db:  0
   port: 6379
   local_host: "127.0.0.1"

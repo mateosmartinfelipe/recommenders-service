@@ -11,7 +11,7 @@ aioredis~=2.0
 pydantic~=1.10
 # to make in the proxi super simple ( not really as it should be )
 httpx~=0.23
-# to iteract with mlflow 
+# to iteract with mlflow
 mlflow-skinny~=1.29
 # numpy
 numpy~=1.23
@@ -31,5 +31,3 @@ python-dotenv~=0.21
 boto3~=1.24
 #config manager
 hydra-core~=1.2
-
-
