@@ -11,5 +11,3 @@ mlflow server \
     --default-artifact-root s3://mlflow/ \
     --host 0.0.0.0
     --port 5000
-
-
