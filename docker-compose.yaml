@@ -17,7 +17,7 @@ services:
       volumes:
           - mlflow_artifacts:/data
       networks:
-          - back-end 
+          - back-end
   db:
       restart: always
       image: mysql/mysql-server
@@ -34,7 +34,7 @@ services:
       volumes:
           - mlflow_db:/var/lib/mysql
       networks:
-          - back-end 
+          - back-end
   web:
       restart: always
       build: ./mlflow-web
@@ -52,7 +52,7 @@ services:
           - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
           - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       networks:
-       - back-end 
+       - back-end
   redis:
     restart: always
     image: 'redis'
@@ -60,7 +60,7 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - back-end   
+      - back-end
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     environment:
@@ -69,7 +69,7 @@ services:
     ports:
       - 22181:2181
     networks:
-      - back-end   
+      - back-end
   kafka:
     restart: always
     image: confluentinc/cp-kafka:5.3.1
@@ -86,7 +86,7 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     networks:
-      - back-end   
+      - back-end
     healthcheck:
       test: nc -z kafka 9092 || exit -1
       start_period: 15s
@@ -103,7 +103,7 @@ services:
       KAFKA_BROKERCONNECT: "kafka:9092"
       JVM_OPTS: "-Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
     networks:
-      - back-end   
+      - back-end
     depends_on:
       - kafka
   api:
@@ -119,7 +119,7 @@ services:
       kafka:
         condition: service_healthy
     networks:
-       - back-end   
+       - back-end
 # this is very useful is a more compelx application you want to
 # have diferent networks for different parts of the service
 
@@ -127,9 +127,5 @@ networks:
   back-end:
 
 volumes:
-  mlflow_artifacts: 
-  mlflow_db: 
-
-
-
-
+  mlflow_artifacts:
+  mlflow_db:
